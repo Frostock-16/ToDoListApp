@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="auto">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="16dp"
+        android:backgroundTint="?attr/colorSurfaceContainer"
+        android:elevation="8dp"
+        app:cardCornerRadius="16dp"
+        app:strokeWidth="0dp"
+        app:cardElevation="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Task Priority"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurface"
+                android:fontFamily="@font/robotorbold"
+                android:textSize="24sp"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Choose a priority 1 (low) | 2 (medium) | 3 (high)"
+                android:layout_marginBottom="8dp"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_priority_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:overScrollMode="never"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_priority_rv" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

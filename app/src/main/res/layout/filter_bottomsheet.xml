@@ -1,0 +1,146 @@
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    android:backgroundTint="?attr/colorSurfaceContainer"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:strokeWidth="0dp">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView
+                android:text="Filter by Priority"
+                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginBottom="8dp"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"/>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupPriority"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:chipSpacing="8dp"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipHigh"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="High" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMedium"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Medium" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipLow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Low" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <TextView
+                android:text="Filter by Category"
+                android:textSize="16sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorOnSurface"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"/>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:chipSpacing="8dp"
+                app:singleSelection="false">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipGrocery"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Grocery" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipWork"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Work" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSport"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Sport" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipDesign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Design" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipUniversity"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="University" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipSocial"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Social" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMusic"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Music" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipHealth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Health" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMovie"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Movie" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipHome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:text="Home" />
+            </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
+    </ScrollView>
+</com.google.android.material.card.MaterialCardView>
