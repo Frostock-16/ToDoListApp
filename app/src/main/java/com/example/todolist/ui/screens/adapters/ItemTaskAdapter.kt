@@ -11,7 +11,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.example.todolist.modal.Task
+import com.example.todolist.data.modal.Task
 
 class ItemTaskAdapter(private var itemList: List<Task>) :
     RecyclerView.Adapter<ItemTaskAdapter.ItemTaskViewHolder>() {

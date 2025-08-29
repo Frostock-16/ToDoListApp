@@ -5,7 +5,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolist.R
-import com.example.todolist.modal.Category
+import com.example.todolist.data.modal.Category
 
 class CategoryAdapter(
     private val categories: List<Category>,

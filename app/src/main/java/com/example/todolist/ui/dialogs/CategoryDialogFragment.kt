@@ -9,7 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.todolist.modal.Category
+import com.example.todolist.data.modal.Category
 
 class CategoryDialogFragment(
     private val onCategorySelected: (String) -> Unit = {}
