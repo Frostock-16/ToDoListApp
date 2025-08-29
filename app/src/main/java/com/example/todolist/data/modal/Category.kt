@@ -1,4 +1,4 @@
-package com.example.todolist.modal
+package com.example.todolist.data.modal
 
 data class Category(
     val iconResId: Int,

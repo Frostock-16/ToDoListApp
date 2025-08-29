@@ -1,7 +1,6 @@
-package com.example.todolist
+package com.example.todolist.data.remote
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -12,6 +11,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import com.example.todolist.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL

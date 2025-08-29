@@ -1,9 +1,8 @@
-package com.example.todolist
+package com.example.todolist.ui.dialogs
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -12,55 +11,53 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.DialogFragment
+import com.example.todolist.R
 import com.example.todolist.data.modal.Task
+import com.example.todolist.data.remote.FirestoreService
 import com.example.todolist.utils.scheduleNotification
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
+import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class AddTaskDialogFragment(private val existingTitle: String = "",
-                            private val existingDescription: String = "") : DialogFragment() {
-    private var selectedTime:String? = null
-    private var selectedCategory:String? = null
-    private var selectedPriority:String? = null
-    private var listener:onAddTaskListener? = null
+class AddTaskDialogFragment(
+    private val existingTitle: String = "",
+    private val existingDescription: String = ""
+) : DialogFragment() {
+
+    private var selectedTime: String? = null
+    private var selectedCategory: String? = null
+    private var selectedPriority: String? = null
+    private var listener: onAddTaskListener? = null
+
+    private val firestoreService = FirestoreService()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View? = inflater.inflate(R.layout.add_task_dialog_fragment, container, false)
 
-        return inflater.inflate(R.layout.add_task_dialog_fragment, container, false)
+    interface onAddTaskListener {
+        fun onAddTask(title: String, description: String = "")
     }
 
-    interface onAddTaskListener{
-        fun onAddTask(title:String, description: String="")
-    }
-
-    fun setOnAddTaskListener(listener: onAddTaskListener){
+    fun setOnAddTaskListener(listener: onAddTaskListener) {
         this.listener = listener
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // TextView
         val tvAddTaskTitle = view.findViewById<TextView>(R.id.tv_add_task_title)
-
-        // EditText
         val etTaskTitle = view.findViewById<EditText>(R.id.et_task_title)
         val etTaskDescription = view.findViewById<EditText>(R.id.et_task_description)
-
-        // Button
         val btnTimer = view.findViewById<MaterialButton>(R.id.btn_timer)
         val btnTag = view.findViewById<MaterialButton>(R.id.btn_tag)
         val btnFlag = view.findViewById<MaterialButton>(R.id.btn_flag)
@@ -68,8 +65,6 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
         val btnEdit = view.findViewById<MaterialButton>(R.id.btn_edit)
         val btnCancel = view.findViewById<MaterialButton>(R.id.btn_cancel)
 
-
-        // Dialog Fields
         btnTimer.setOnClickListener {
             showTimePicker {
                 btnTimer.backgroundTintList = ContextCompat.getColorStateList(
@@ -83,8 +78,8 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
             }
         }
 
-        btnFlag.setOnClickListener{
-            val taskPriorityDialogFragment = TaskPriorityDialogFragment{
+        btnFlag.setOnClickListener {
+            val taskPriorityDialogFragment = TaskPriorityDialogFragment {
                 btnFlag.backgroundTintList = ContextCompat.getColorStateList(
                     requireContext(),
                     R.color.md_theme_primaryContainer
@@ -94,17 +89,17 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
                     R.color.md_theme_onPrimaryContainer
                 )
             }
-            taskPriorityDialogFragment.setOnTaskPrioritySelected(object:TaskPriorityDialogFragment.onTaskPrioritySelectedListener{
+            taskPriorityDialogFragment.setOnTaskPrioritySelected(object :
+                TaskPriorityDialogFragment.onTaskPrioritySelectedListener {
                 override fun onTaskPrioritySelected(taskPriority: String) {
                     selectedPriority = taskPriority
                 }
             })
-
             taskPriorityDialogFragment.show(childFragmentManager, "TaskPriorityDialogFragment")
         }
 
-        btnTag.setOnClickListener{
-            val categoryDialogFragment = CategoryDialogFragment{
+        btnTag.setOnClickListener {
+            val categoryDialogFragment = CategoryDialogFragment {
                 btnTag.backgroundTintList = ContextCompat.getColorStateList(
                     requireContext(),
                     R.color.md_theme_primaryContainer
@@ -115,51 +110,49 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
                 )
             }
 
-            val bundle = Bundle()
-            bundle.putString("source", "AddTaskDialogFragment")
+            val bundle = Bundle().apply { putString("source", "AddTaskDialogFragment") }
             categoryDialogFragment.arguments = bundle
 
-            categoryDialogFragment.setOnCategorySelectedListener(object: CategoryDialogFragment.OnCategorySelectedListener{
+            categoryDialogFragment.setOnCategorySelectedListener(object :
+                CategoryDialogFragment.OnCategorySelectedListener {
                 override fun onCategorySelected(categoryName: String) {
                     selectedCategory = categoryName
                 }
             })
-
             categoryDialogFragment.show(childFragmentManager, "CategoryDialogFragment")
         }
 
-        // SaveTask (btnSendTask)
+        // Save Task (send button)
         btnSendTask.isEnabled = false
         etTaskTitle.addTextChangedListener {
-            val titleText = it.toString().trim()
-            btnSendTask.isEnabled = titleText.isNotEmpty()
+            btnSendTask.isEnabled = it.toString().trim().isNotEmpty()
         }
-        btnSendTask.setOnClickListener{
+        btnSendTask.setOnClickListener {
             btnSendTask.isEnabled = false
-            if(etTaskTitle.text.toString().trim().isEmpty()){
+            val titleText = etTaskTitle.text.toString().trim()
+            if (titleText.isEmpty()) {
                 etTaskTitle.error = "Required"
                 btnSendTask.isEnabled = true
-            }else{
+            } else {
                 val task = Task(
-                    title = etTaskTitle.text.toString(),
+                    title = titleText,
                     description = etTaskDescription.text.toString(),
-                    time = selectedTime.toString(),
-                    category = selectedCategory.toString(),
-                    priority = selectedPriority.toString()
+                    time = selectedTime.orEmpty(),
+                    category = selectedCategory.orEmpty(),
+                    priority = selectedPriority.orEmpty()
                 )
                 addTask(task)
-
             }
         }
 
-
-        // Hiding the view in TaskScreen
-        val hideViewsTaskScreen = arguments?.getBoolean("hide_viewsTaskScreen", false)?:false
-        val hideViewsProfileScreen = arguments?.getBoolean("hideViews_ProfileScreen", false)?:false
-        val hideViewsProfileScreenEmail = arguments?.getBoolean("hideViews_ProfileScreenEmail", false)?:false
+        // Hide/Show modes
+        val hideViewsTaskScreen = arguments?.getBoolean("hide_viewsTaskScreen", false) ?: false
+        val hideViewsProfileScreen = arguments?.getBoolean("hideViews_ProfileScreen", false) ?: false
+        val hideViewsProfileScreenEmail = arguments?.getBoolean("hideViews_ProfileScreenEmail", false) ?: false
         val hideViewsProfileScreenPassword = arguments?.getBoolean("hideViews_ProfileScreenPassword", false) ?: false
-        if(hideViewsTaskScreen){
-            val llAddTaskViews = view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
+
+        if (hideViewsTaskScreen) {
+            view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
             tvAddTaskTitle.text = "Edit Task"
             btnTimer.visibility = View.GONE
             btnTag.visibility = View.GONE
@@ -168,9 +161,8 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
             btnEdit.visibility = View.VISIBLE
             btnCancel.visibility = View.VISIBLE
         }
-        if(hideViewsProfileScreen)
-        {
-            val llAddTaskViews = view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
+        if (hideViewsProfileScreen) {
+            view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
             tvAddTaskTitle.text = "Change Acccount Name"
             btnTimer.visibility = View.GONE
             btnTag.visibility = View.GONE
@@ -182,9 +174,8 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
             btnCancel.visibility = View.VISIBLE
             etTaskTitle.hint = "Eg.(xyz, Krish Malhotra...)"
         }
-        if(hideViewsProfileScreenEmail)
-        {
-            val llAddTaskViews = view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
+        if (hideViewsProfileScreenEmail) {
+            view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
             tvAddTaskTitle.text = "Change Email"
             btnTimer.visibility = View.GONE
             btnTag.visibility = View.GONE
@@ -197,7 +188,7 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
             etTaskTitle.hint = "Email"
         }
         if (hideViewsProfileScreenPassword) {
-            val llAddTaskViews = view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
+            view.findViewById<ConstraintLayout>(R.id.ll_add_task_views)
             tvAddTaskTitle.text = "Change Password"
             btnTimer.visibility = View.GONE
             btnTag.visibility = View.GONE
@@ -210,98 +201,96 @@ class AddTaskDialogFragment(private val existingTitle: String = "",
             etTaskTitle.hint = "New Password"
         }
 
+        btnCancel.setOnClickListener { dismiss() }
 
-        btnCancel.setOnClickListener{
-            dismiss()
-        }
-
-
-        // Set title and description (description if exists)
+        // Pre-fill for edit
         etTaskTitle.setText(existingTitle)
         etTaskDescription.setText(existingDescription)
-        btnEdit.setOnClickListener{
+
+        btnEdit.setOnClickListener {
             val title = etTaskTitle.text.toString()
             val description = etTaskDescription.text.toString()
 
             if (title.isBlank()) {
-                Toast.makeText(requireContext(), "Title can't be empty", Toast.LENGTH_SHORT).show()
+                Snackbar.make(requireView(), "Title cannot be empty!", Snackbar.LENGTH_SHORT).show()
             } else {
-                val finalDescription = if (description.isBlank()) existingDescription else description
+                val finalDescription = description.ifBlank { existingDescription }
                 listener?.onAddTask(title, finalDescription)
                 dismiss()
             }
         }
+
     }
 
-    // Add task to firebase
+    // Firestore call via service + schedule notification
     private fun addTask(task: Task) {
-        val userId = Firebase.auth.currentUser?.uid
-        val db = Firebase.firestore
-
-        if (userId != null) {
-            db.collection("users")
-                .document(userId)
-                .collection("tasks")
-                .add(task)
-                .addOnSuccessListener { documentReference ->
-                    if (!task.time.isNullOrEmpty() && task.time != "null") {
-
-                        val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-                        try {
-                            val timeInMillis = formatter.parse(task.time)?.time ?: 0L
-                            if (timeInMillis > System.currentTimeMillis()) {
-                                activity?.let {
-                                    scheduleNotification(
-                                        it,
-                                        documentReference.id.hashCode(),
-                                        timeInMillis,
-                                        task.title,
-                                        task.priority.toInt()
-                                    )
-                                }
+        firestoreService.addTask(
+            task = task,
+            onSuccess = { documentId ->
+                if (!task.time.isNullOrEmpty() && task.time != "null") {
+                    val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+                    try {
+                        val timeInMillis = formatter.parse(task.time)?.time ?: 0L
+                        if (timeInMillis > System.currentTimeMillis()) {
+                            activity?.let {
+                                val prio = task.priority.toIntOrNull() ?: 3
+                                scheduleNotification(
+                                    it,
+                                    documentId.hashCode(),
+                                    timeInMillis,
+                                    task.title,
+                                    prio
+                                )
                             }
-                        } catch (e: Exception) {
-                            Log.e("Notification", "Failed to parse date for notification", e)
                         }
-                    }
-                    if (isAdded) {
-                        parentFragmentManager.setFragmentResult("taskAddedRequest", Bundle())
-                        dismiss()
+                    } catch (e: Exception) {
+                        Log.e("Notification", "Failed to parse date for notification", e)
                     }
                 }
-                .addOnFailureListener { e ->
-                    Log.e("Firestore", "Error adding task", e)
+                if (isAdded) {
+                    parentFragmentManager.setFragmentResult("taskAddedRequest", Bundle())
+                    dismiss()
                 }
-        } else {
-            Log.d("Firestore", "User not logged in")
-        }
+            },
+            onFailure = { e ->
+                Snackbar.make(requireView(), "unable to add task", Snackbar.LENGTH_SHORT).show()
+            }
+        )
     }
 
-
-
-    // Select Date and Time
-    private fun showTimePicker(timePicker: (String) -> Unit = {})
-    {
+    private fun showTimePicker(timePicked: (String) -> Unit = {}) {
         val calendar = Calendar.getInstance()
-        val datePickerDialog = DatePickerDialog(requireContext(), { _, year, month, dayOfMonth ->
-            val timePickerDialog = TimePickerDialog(requireContext(), { _, hourOfDay, minute ->
-                calendar.set(year, month, dayOfMonth, hourOfDay, minute)
-                val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-                selectedTime = formatter.format(calendar.time)
-                timePicker(selectedTime.toString())
-                Log.d("Date Picker", "DatePickerDialog: $selectedTime")
-
-            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false)
-            timePickerDialog.show()
-        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
-
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                val timePickerDialog = TimePickerDialog(
+                    requireContext(),
+                    { _, hourOfDay, minute ->
+                        calendar.set(year, month, dayOfMonth, hourOfDay, minute)
+                        val formatter = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+                        selectedTime = formatter.format(calendar.time)
+                        timePicked(selectedTime!!)
+                    },
+                    calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE),
+                    false
+                )
+                timePickerDialog.show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
         datePickerDialog.show()
     }
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog?.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog?.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
         dialog?.window?.setGravity(Gravity.BOTTOM)
     }
 }

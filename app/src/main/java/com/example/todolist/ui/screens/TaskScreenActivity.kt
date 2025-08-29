@@ -1,37 +1,31 @@
-package com.example.todolist
+package com.example.todolist.ui.screens
 
-import android.app.AlarmManager
+import android.Manifest
 import android.app.DatePickerDialog
-import android.app.PendingIntent
 import android.app.TimePickerDialog
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.FragmentManager
-import com.example.todolist.showDialogFragUtil.showDialogFragment
-import com.example.todolist.ui.screens.HomeScreenActivity
+import com.example.todolist.BaseActivity
+import com.example.todolist.R
+import com.example.todolist.data.remote.FirestoreService
+import com.example.todolist.ui.dialogs.AddTaskDialogFragment
+import com.example.todolist.ui.dialogs.CategoryDialogFragment
+import com.example.todolist.ui.dialogs.TaskPriorityDialogFragment
+import com.example.todolist.ui.utils.showDialogFragUtil.showDialogFragment
 import com.example.todolist.utils.cancelNotification
 import com.example.todolist.utils.scheduleNotification
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.android.material.snackbar.Snackbar
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -46,6 +40,7 @@ class TaskScreenActivity : BaseActivity() {
     private lateinit var time: String
     private lateinit var category: String
     private lateinit var priority: String
+    private val firestoreService = FirestoreService()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.task_screen_activity)
@@ -201,13 +196,13 @@ class TaskScreenActivity : BaseActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
-                    android.Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS
                 )
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(
                     this,
-                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
                     1001
                 )
             }
@@ -282,57 +277,50 @@ class TaskScreenActivity : BaseActivity() {
 
     private fun deleteTask() {
         cancelNotification(this, taskId.hashCode())
-        val userId = Firebase.auth.currentUser?.uid
-        val db = FirebaseFirestore.getInstance()
 
-        if (userId != null && taskId.isNotEmpty()) {
-            db.collection("users")
-                .document(userId)
-                .collection("tasks")
-                .document(taskId)
-                .delete()
-                .addOnSuccessListener {
-                    Toast.makeText(this, "Task deleted successfully", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(this, HomeScreenActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(intent)
-                    finish()
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(
-                        this,
-                        "Failed to delete task: ${e.localizedMessage}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    Log.e("Firestore", "Delete error", e)
-                }
-        } else {
-            Toast.makeText(this, "Error: Task ID not found", Toast.LENGTH_SHORT).show()
-        }
+        firestoreService.deleteTask(
+            taskId = taskId,
+            onSuccess = {
+                Snackbar.make(findViewById(android.R.id.content), "Task deleted successfully", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_onSurface))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_surfaceVariant))
+                    .show()
+
+                val intent = Intent(this, HomeScreenActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+                finish()
+            },
+            onFailure = { e ->
+                Snackbar.make(findViewById(android.R.id.content), "Failed to delete task: ${e.localizedMessage}", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_errorContainer))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_onErrorContainer))
+                    .show()
+                Log.e("Firestore", "Delete error", e)
+            }
+        )
     }
 
-    private fun updateTask(selectedField: String, value: String) {
-        val userId = Firebase.auth.currentUser?.uid
-        val db = FirebaseFirestore.getInstance()
-        if (userId != null && taskId.isNotEmpty()) {
-            db.collection("users")
-                .document(userId)
-                .collection("tasks")
-                .document(taskId)
-                .update(selectedField, value)
-                .addOnSuccessListener {
-                    Toast.makeText(this, "Updated successfully", Toast.LENGTH_SHORT).show()
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(
-                        this,
-                        "Failed to update task: ${e.localizedMessage}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-        } else {
-            Toast.makeText(this, "Error: Task ID not found", Toast.LENGTH_SHORT).show()
-        }
+    private fun updateTask(field: String, value: String) {
+        firestoreService.updateTask(
+            taskId,
+            field,
+            value,
+            onSuccess = {
+                Snackbar.make(findViewById(android.R.id.content), "Updated successfully", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_onSurface))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_surfaceVariant))
+                    .show()
+            },
+            onFailure = { e ->
+                Snackbar.make(findViewById(android.R.id.content), "Failed to update task: ${e.localizedMessage}", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_errorContainer))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_onErrorContainer))
+                    .show()
+            }
+        )
     }
+
+
 
 }

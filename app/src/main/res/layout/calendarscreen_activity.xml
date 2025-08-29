@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
-    tools:context=".CalendarScreenActivity">
+    tools:context=".ui.screens.CalendarScreenActivity">
 
     <LinearLayout
         android:id="@+id/linearLayout2"

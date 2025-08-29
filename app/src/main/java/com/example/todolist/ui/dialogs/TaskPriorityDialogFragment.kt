@@ -1,30 +1,22 @@
-package com.example.todolist
+package com.example.todolist.ui.dialogs
 
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.todolist.R
 import com.example.todolist.adapter.TaskPriorityAdapter
+import com.google.android.material.snackbar.Snackbar
 
 class TaskPriorityDialogFragment(private val onPrioritySelected: (String) -> Unit = {}) :
     DialogFragment() {
     private var listener: onTaskPrioritySelectedListener? = null
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.task_priority_dialog_fragment, container, false)
-    }
 
     interface onTaskPrioritySelectedListener {
         fun onTaskPrioritySelected(taskPriority: String)
@@ -34,6 +26,14 @@ class TaskPriorityDialogFragment(private val onPrioritySelected: (String) -> Uni
         this.listener = listener
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.task_priority_dialog_fragment, container, false)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -41,28 +41,13 @@ class TaskPriorityDialogFragment(private val onPrioritySelected: (String) -> Uni
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
 
         val adapter = TaskPriorityAdapter(requireContext()) { selectedPriority ->
-            // Handle priority selected
             onPrioritySelected(selectedPriority.toString())
             listener?.onTaskPrioritySelected(selectedPriority.toString())
-            Toast.makeText(requireContext(), "Selected Priority $selectedPriority", Toast.LENGTH_SHORT).show()
+            Snackbar.make(requireView(), "Selected Priority $selectedPriority", Snackbar.LENGTH_SHORT).show()
             dismiss()
         }
 
         recyclerView.adapter = adapter
-
-
-        // Previous implementation of priority selection (gridview)
-//        selectedPriority = -1
-//        buttons.forEachIndexed { index, button ->
-//            button.setOnClickListener {
-//                buttons.forEach { it.isSelected = false }
-//                button.isSelected = true
-//                selectedPriority = index + 1
-//                Log.d("Task Priority", "TaskPriority: $selectedPriority")
-//            }
-//        }
-
-
     }
 
     override fun onStart() {

@@ -1,9 +1,8 @@
-package com.example.todolist
+package com.example.todolist.ui.screens
 
 import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
-import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -12,16 +11,19 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import androidx.activity.addCallback
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import com.example.todolist.BaseActivity
+import com.example.todolist.ui.utils.BottomNavUtil
+import com.example.todolist.R
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
@@ -134,7 +136,7 @@ class FocusScreenActivity : BaseActivity() {
 
     private fun requestDndPermissionAndEnable() {
         val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (!notificationManager.isNotificationPolicyAccessGranted) {
             val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             startActivity(intent)
@@ -145,7 +147,7 @@ class FocusScreenActivity : BaseActivity() {
 
     private fun disableDndMode() {
         val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
     }
 
@@ -153,7 +155,7 @@ class FocusScreenActivity : BaseActivity() {
     private fun setupFocusChart() {
         val barChart = findViewById<BarChart>(R.id.focusBarChart)
 
-        val prefs = getSharedPreferences("focus_stats", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("focus_stats", MODE_PRIVATE)
         val days = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
         val focusData = days.map { day -> prefs.getFloat(day, 0f) }
 
@@ -223,24 +225,17 @@ class FocusScreenActivity : BaseActivity() {
         val sdf = SimpleDateFormat("EEE", Locale.getDefault())
         val day = sdf.format(Date()).uppercase(Locale.getDefault())
 
-        val prefs = getSharedPreferences("focus_stats", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("focus_stats", MODE_PRIVATE)
         val currentTotal = prefs.getFloat(day, 0f)
         prefs.edit().putFloat(day, currentTotal + duration).commit()
     }
 
-//    private fun debugPrintSavedFocusData() {
-//        val prefs = getSharedPreferences("focus_stats", Context.MODE_PRIVATE)
-//        val days = listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
-//        for (day in days) {
-//            Log.d("DEBUG_STATS", "$day: ${prefs.getFloat(day, 0f)}")
-//        }
-//    }
 
     private fun requestUsageStatsPermissionIfNeeded() {
-        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val appOps = getSystemService(APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(
             AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
+            Process.myUid(),
             packageName
         )
         if (mode != AppOpsManager.MODE_ALLOWED) {
@@ -249,7 +244,7 @@ class FocusScreenActivity : BaseActivity() {
     }
 
     private fun displayTopUsedApps() {
-        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val usageStatsManager = getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 24 * 60 * 60 * 1000 // last 24 hrs
 
@@ -273,7 +268,7 @@ class FocusScreenActivity : BaseActivity() {
                 setPadding(8, 16, 8, 16)
             }
 
-            val iconView = android.widget.ImageView(this).apply {
+            val iconView = ImageView(this).apply {
                 setImageDrawable(appIcon)
                 layoutParams = LinearLayout.LayoutParams(80, 80)
             }

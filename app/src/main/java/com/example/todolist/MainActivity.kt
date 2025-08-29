@@ -5,6 +5,9 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import androidx.annotation.RequiresApi
+import com.example.todolist.ui.auth.LoginActivity
+import com.example.todolist.ui.auth.SignupActivity
+import com.example.todolist.ui.screens.HomeScreenActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : BaseActivity() {

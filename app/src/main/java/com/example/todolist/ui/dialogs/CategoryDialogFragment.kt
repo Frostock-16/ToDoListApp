@@ -1,15 +1,16 @@
-package com.example.todolist
+package com.example.todolist.ui.dialogs
 
 import CategoryAdapter
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
-import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.todolist.R
 import com.example.todolist.data.modal.Category
+import com.google.android.material.snackbar.Snackbar
 
 class CategoryDialogFragment(
     private val onCategorySelected: (String) -> Unit = {}
@@ -53,7 +54,7 @@ class CategoryDialogFragment(
         val adapter = CategoryAdapter(categories) { selected ->
             listener?.onCategorySelected(selected.label)
             onCategorySelected(selected.label)
-            Toast.makeText(requireContext(), "Selected ${selected.label}", Toast.LENGTH_SHORT).show()
+            Snackbar.make(requireView(), "Selected ${selected.label}", Snackbar.LENGTH_SHORT).show()
             dismiss()
         }
 

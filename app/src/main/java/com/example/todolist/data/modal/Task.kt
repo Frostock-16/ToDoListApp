@@ -1,4 +1,4 @@
-package com.example.todolist.modal
+package com.example.todolist.data.modal
 
 import com.google.firebase.Timestamp
 

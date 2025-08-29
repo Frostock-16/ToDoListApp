@@ -1,7 +1,8 @@
-package com.example.todolist
+package com.example.todolist.ui.utils
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
+import com.example.todolist.R
 import com.example.todolist.ui.screens.CalendarScreenActivity
 import com.example.todolist.ui.screens.FocusScreenActivity
 import com.example.todolist.ui.screens.HomeScreenActivity

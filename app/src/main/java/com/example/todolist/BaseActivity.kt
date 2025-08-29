@@ -2,12 +2,11 @@ package com.example.todolist
 
 import android.content.Context
 import android.content.Intent
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.example.todolist.ui.screens.HomeScreenActivity
+import com.example.todolist.ui.utils.LocaleHelper
 
 open class BaseActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {

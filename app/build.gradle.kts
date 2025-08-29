@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.gms.google-services")
+//    alias(libs.plugins.compose.compiler) apply false
     kotlin("kapt")
 }
 
@@ -39,7 +40,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
-        compose = true
+        compose = false
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"

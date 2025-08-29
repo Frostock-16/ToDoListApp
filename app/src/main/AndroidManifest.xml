@@ -38,24 +38,24 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".LoginActivity" />
-        <activity android:name=".SignupActivity"/>
+        <activity android:name=".ui.auth.LoginActivity" />
+        <activity android:name=".ui.auth.SignupActivity"/>
         <activity
-            android:name=".HomeScreenActivity"
+            android:name=".ui.screens.HomeScreenActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".TaskScreenActivity"
-            android:parentActivityName=".HomeScreenActivity"/>
-        <activity android:name=".CalendarScreenActivity"
-            android:parentActivityName=".HomeScreenActivity"/>
-        <activity android:name=".FocusScreenActivity"/>
-        <activity android:name=".ProfileScreenActivity"/>
-        <activity android:name=".AppSettingsActivity"/>
-        <receiver android:name=".TaskReminderReceiver" />
+        <activity android:name=".ui.screens.TaskScreenActivity"
+            android:parentActivityName=".ui.screens.HomeScreenActivity"/>
+        <activity android:name=".ui.screens.CalendarScreenActivity"
+            android:parentActivityName=".ui.screens.HomeScreenActivity"/>
+        <activity android:name=".ui.screens.FocusScreenActivity"/>
+        <activity android:name=".ui.screens.ProfileScreenActivity"/>
+        <activity android:name=".ui.screens.AppSettingsActivity"/>
+        <receiver android:name=".ui.dialogs.TaskReminderReceiver" />
 
 
         <provider

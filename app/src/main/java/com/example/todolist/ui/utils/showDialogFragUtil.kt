@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui.utils
 
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment

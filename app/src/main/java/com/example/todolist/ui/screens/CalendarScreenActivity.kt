@@ -1,28 +1,30 @@
-package com.example.todolist
+package com.example.todolist.ui.screens
 
 import android.content.Intent
 import android.graphics.Canvas
-import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.todolist.BaseActivity
+import com.example.todolist.R
 import com.example.todolist.data.modal.Task
+import com.example.todolist.data.remote.FirestoreService
+import com.example.todolist.ui.screens.adapters.HorizontalCalendarAdapter
+import com.example.todolist.ui.screens.adapters.ItemTaskAdapter
+import com.example.todolist.ui.utils.BottomNavUtil
 import com.facebook.shimmer.ShimmerFrameLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.firestore
+import com.google.android.material.snackbar.Snackbar
 import it.xabaras.android.recyclerview.swipedecorator.RecyclerViewSwipeDecorator
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -37,6 +39,7 @@ class CalendarScreenActivity : BaseActivity() {
     private var currentSelectedDate: Calendar = Calendar.getInstance()
     private var isShowingCompleted = false
     private val taskList = mutableListOf<Task>()
+    private val firestoreService = FirestoreService()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.calendarscreen_activity)
@@ -156,73 +159,46 @@ class CalendarScreenActivity : BaseActivity() {
     }
 
     private fun fetchTasksFromFirestore(selectedDate: Calendar) {
-        val userId = Firebase.auth.currentUser?.uid
-        val db = FirebaseFirestore.getInstance()
+        firestoreService.fetchTasksForDate(
+            selectedDate,
+            onSuccess = { filtered ->
+                shimmerLayout.stopShimmer()
+                shimmerLayout.visibility = View.GONE
 
-        if (userId != null) {
-            db.collection("users").document(userId).collection("tasks")
-                .orderBy("taskCreatedAtTime", Query.Direction.ASCENDING).get()
-                .addOnSuccessListener { result ->
-                    taskList.clear()
-                    shimmerLayout.stopShimmer()
-                    shimmerLayout.visibility = View.GONE
+                taskList.clear()
+                taskList.addAll(filtered)
+
+                if (taskList.isEmpty()) {
+                    emptyTaskImageView.visibility = View.VISIBLE
+                    emptyTaskTextView.visibility = View.VISIBLE
+                    recyclerView.visibility = View.GONE
+                } else {
+                    emptyTaskImageView.visibility = View.GONE
+                    emptyTaskTextView.visibility = View.GONE
                     recyclerView.visibility = View.VISIBLE
-                    for (document in result) {
-                        Log.d("FirestoreData", "Document: ${document.data}")
-                        val task = document.toObject(Task::class.java)
-                        task.taskId = document.id
-                        taskList.add(task)
-                    }
-                    val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-                    val selectedDateString = sdf.format(selectedDate.time)
-
-                    val filtered = taskList.filter { task ->
-                        task.time.startsWith(selectedDateString)
-                    }
-                    if (filtered.isEmpty()) {
-                        emptyTaskImageView.visibility = View.VISIBLE
-                        emptyTaskTextView.visibility = View.VISIBLE
-                        recyclerView.visibility = View.GONE
-                        Log.d("RecyclerViewCheck", "NotShowing ${filtered.size} tasks")
-                    } else {
-                        emptyTaskImageView.visibility = View.GONE
-                        emptyTaskTextView.visibility = View.GONE
-                        recyclerView.visibility = View.VISIBLE
-                        Log.d("RecyclerViewCheck", "Showing ${filtered.size} tasks")
-                    }
-                    itemTaskAdapter.updateList(filtered)
                 }
-
-                .addOnFailureListener { e ->
-                    Log.e("Firestore", "Error getting tasks", e)
-                }
-        }
+                itemTaskAdapter.updateList(taskList)
+            },
+            onFailure = { e ->
+                Log.e("Firestore", "Error getting tasks", e)
+            }
+        )
     }
 
     private fun fetchCompletedTasksFromFirestore() {
-        val userId = Firebase.auth.currentUser?.uid
-        val db = FirebaseFirestore.getInstance()
-        if (userId != null) {
-            db.collection("users").document(userId).collection("completed_tasks")
-                .orderBy("taskCreatedAtTime", Query.Direction.DESCENDING).get()
-                .addOnSuccessListener { result ->
-                    for (document in result) {
-                        Log.d("FirestoreData", "Document: ${document.data}")
-                        val task = document.toObject(Task::class.java)
-                        task.taskId = document.id
-                        Log.d(
-                            "FirestoreTask", "taskCreatedAtTime: ${task.taskCreatedAtTime.toDate()}"
-                        )
-                        taskList.add(task)
-                    }
-                    Log.d("FirestoreData", "Task list size: ${taskList.size}")
-                    itemTaskAdapter.updateList(taskList)
-                }.addOnFailureListener { e ->
-                    Log.e("Firestore", "Error getting tasks", e)
-                }
-        }
-        taskList.clear()
+        firestoreService.fetchCompletedTasks(
+            onSuccess = { tasks ->
+                taskList.clear()
+                taskList.addAll(tasks)
+                itemTaskAdapter.updateList(taskList)
+            },
+            onFailure = { e ->
+                Log.e("Firestore", "Error getting completed tasks", e)
+            }
+        )
     }
+
+
 
     // Swipe Delete Completed Task
     private val itemTouchHelper =
@@ -251,9 +227,9 @@ class CalendarScreenActivity : BaseActivity() {
                     ContextCompat.getColor(
                         this@CalendarScreenActivity, R.color.md_theme_errorContainer
                     )
-                ).setActionIconTint(Color.parseColor("#C3C3C3"))
+                ).setActionIconTint("#C3C3C3".toColorInt())
                     .addActionIcon(R.drawable.ic_delete).addSwipeLeftLabel("Delete")
-                    .setSwipeLeftLabelColor(Color.parseColor("#C3C3C3"))
+                    .setSwipeLeftLabelColor("#C3C3C3".toColorInt())
                     .setSwipeLeftLabelTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     .addCornerRadius(TypedValue.COMPLEX_UNIT_SP, 8).create().decorate()
                 super.onChildDraw(
@@ -278,31 +254,31 @@ class CalendarScreenActivity : BaseActivity() {
         })
 
     private fun deleteCompletedTask(position: Int) {
-
         val task = taskList[position]
-        val userId = Firebase.auth.currentUser?.uid
 
-        if (userId != null && task.taskId.isNotEmpty()) {
-            Firebase.firestore.collection("users").document(userId).collection("completed_tasks")
-                .document(task.taskId).delete().addOnSuccessListener {
-                    taskList.removeAt(position)
+        firestoreService.deleteCompletedTask(
+            taskId = task.taskId,
+            onSuccess = {
+                taskList.removeAt(position)
+                val sharedPrefs = getSharedPreferences("ToDoList", MODE_PRIVATE)
+                sharedPrefs.edit { putString("TaskLeftCount", "${taskList.size}") }
+                itemTaskAdapter.notifyItemRemoved(position)
 
-                    val sharedPrefs = getSharedPreferences("ToDoList", MODE_PRIVATE)
-                    sharedPrefs.edit().putString("TaskLeftCount", "${taskList.size}").apply()
+                Snackbar.make(findViewById(android.R.id.content), "Task deleted", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_onSurface))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_surfaceVariant))
+                    .show()
+            },
+            onFailure = {
+                Snackbar.make(findViewById(android.R.id.content), "Failed to delete", Snackbar.LENGTH_SHORT)
+                    .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_errorContainer))
+                    .setTextColor(ContextCompat.getColor(this, R.color.md_theme_onErrorContainer))
+                    .show()
 
-                    itemTaskAdapter.notifyItemRemoved(position)
-                    Toast.makeText(
-                        this@CalendarScreenActivity, "Task deleted", Toast.LENGTH_SHORT
-                    ).show()
-                }.addOnFailureListener {
-                    Toast.makeText(
-                        this@CalendarScreenActivity, "Failed to delete", Toast.LENGTH_SHORT
-                    ).show()
-                    itemTaskAdapter.notifyItemChanged(position)
-                }
-        } else {
-            itemTaskAdapter.notifyItemChanged(position)
-        }
-
+                itemTaskAdapter.notifyItemChanged(position)
+            }
+        )
     }
+
+
 }

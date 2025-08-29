@@ -1,38 +1,31 @@
-package com.example.todolist
+package com.example.todolist.ui.auth
 
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
-import androidx.credentials.GetCredentialRequest
-import com.example.todolist.SignupActivity.Companion
+import com.example.todolist.BaseActivity
+import com.example.todolist.data.remote.GoogleSignInCallback
+import com.example.todolist.data.remote.GoogleSignInHelper
+import com.example.todolist.R
 import com.example.todolist.ui.screens.HomeScreenActivity
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthException
-import com.google.firebase.auth.auth
+import com.example.todolist.data.remote.AuthService
 
 class LoginActivity : BaseActivity(), GoogleSignInCallback {
-    private lateinit var auth: FirebaseAuth
     private lateinit var etEmail: EditText
     private lateinit var etPassword: EditText
     private lateinit var btnLoginWithGoogle: Button
     private lateinit var googleSignInHelper: GoogleSignInHelper
+    private val authService = AuthService()
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.login_activity)
 
-        auth = Firebase.auth
         googleSignInHelper = GoogleSignInHelper(this, this)
 
         // TextView
@@ -59,47 +52,18 @@ class LoginActivity : BaseActivity(), GoogleSignInCallback {
         }
     }
 
-    public override fun onStart() {
-        super.onStart()
-        val currentUsers = auth.currentUser
-        if (currentUsers != null) {
-            Toast.makeText(this, "Current user exist", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, "No current users", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     private fun login(email: String, password: String) {
         if (!validateForm()) {
             return
         }
-
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    val intent = Intent(this, HomeScreenActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                } else {
-                    val loginException = task.exception
-                    if (loginException is FirebaseAuthException) {
-                        when (loginException.errorCode) {
-                            "ERROR_INVALID_EMAIL" -> {
-                                etEmail.error = "Invalid email format"
-                            }
-
-                            "ERROR_WRONG_PASSWORD" -> {
-                                etPassword.error = "Incorrect password"
-                            }
-
-                            else -> {
-                                Log.e(TAG, "Sign-up error: ${loginException.message}")
-                                etEmail.error = loginException.message
-                            }
-                        }
-                    }
-                }
+        authService.login(email, password) { success, message ->
+            if (success) {
+                startActivity(Intent(this, HomeScreenActivity::class.java))
+                finish()
+            } else {
+                etEmail.error = message
             }
+        }
     }
 
     private fun validateForm(): Boolean {

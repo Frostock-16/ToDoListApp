@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui.screens
 
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -9,13 +9,20 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AlertDialog
+import com.example.todolist.BaseActivity
+import com.example.todolist.ui.utils.LocaleHelper
+import com.example.todolist.R
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import androidx.core.content.edit
+import com.example.todolist.data.remote.FirestoreService
+import com.google.android.material.snackbar.Snackbar
 
 class AppSettingsActivity : BaseActivity() {
 
     private lateinit var sharedPrefs: SharedPreferences
+    private val firestoreService = FirestoreService()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,40 +75,31 @@ class AppSettingsActivity : BaseActivity() {
     private fun resetTasks() {
         val userId = Firebase.auth.currentUser?.uid
         if (userId != null) {
-            val db = Firebase.firestore
-
-            db.collection("users")
-                .document(userId)
-                .collection("tasks")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    for (document in snapshot) {
-                        db.collection("users")
-                            .document(userId)
-                            .collection("tasks")
-                            .document(document.id)
-                            .delete()
+            firestoreService.resetUserTasks(
+                userId = userId,
+                onSuccess = {
+                    sharedPrefs.edit {
+                        putString("TaskLeftCount", "0 TASK LEFT")
+                            .putInt("TaskDoneCount", 0)
                     }
 
-                    db.collection("users")
-                        .document(userId)
-                        .collection("completed_tasks")
-                        .get()
-                        .addOnSuccessListener { snapshot2 ->
-                            for (document in snapshot2) {
-                                db.collection("users")
-                                    .document(userId)
-                                    .collection("completed_tasks")
-                                    .document(document.id)
-                                    .delete()
-                            }
-
-                            sharedPrefs.edit().putString("TaskLeftCount", "0 TASK LEFT").putInt("TaskDoneCount", 0).apply()
-                            Toast.makeText(this, "All tasks reset.", Toast.LENGTH_SHORT).show()
-                        }
+                    Snackbar.make(
+                        findViewById(android.R.id.content),
+                        "All tasks reset.",
+                        Snackbar.LENGTH_SHORT
+                    ).show()
+                },
+                onFailure = {
+                    Snackbar.make(
+                        findViewById(android.R.id.content),
+                        "Failed to reset tasks.",
+                        Snackbar.LENGTH_SHORT
+                    ).show()
                 }
+            )
         }
     }
+
 
 
     private fun showLanguageDialog() {
@@ -115,9 +113,9 @@ class AppSettingsActivity : BaseActivity() {
 
                 // Save choice in shared prefs
                 getSharedPreferences("ToDoList", MODE_PRIVATE)
-                    .edit()
-                    .putString("AppLanguage", chosenLang)
-                    .apply()
+                    .edit {
+                        putString("AppLanguage", chosenLang)
+                    }
 
                 LocaleHelper.setLocale(this, chosenLang)
                 finish()

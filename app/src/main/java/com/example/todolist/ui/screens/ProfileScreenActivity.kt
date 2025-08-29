@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui.screens
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -7,27 +7,30 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.text.InputType
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import com.example.todolist.showDialogFragUtil.showDialogFragment
+import com.example.todolist.BaseActivity
+import com.example.todolist.R
+import com.example.todolist.data.remote.AuthService
+import com.example.todolist.ui.auth.LoginActivity
+import com.example.todolist.ui.dialogs.AddTaskDialogFragment
+import com.example.todolist.ui.utils.BottomNavUtil
+import com.example.todolist.ui.utils.showDialogFragUtil.showDialogFragment
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.auth.EmailAuthProvider
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.userProfileChangeRequest
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import java.io.File
-
 
 class ProfileScreenActivity : BaseActivity() {
     private lateinit var pickImageLauncher: ActivityResultLauncher<Intent>
@@ -36,6 +39,7 @@ class ProfileScreenActivity : BaseActivity() {
     private lateinit var ivProfileimg: ImageView
     private lateinit var tvAccountName: TextView
     private lateinit var bottomNav: BottomNavigationView
+    private val authService = AuthService()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,13 +60,10 @@ class ProfileScreenActivity : BaseActivity() {
             val currentScrollY = scrollView.scrollY
             val dy = currentScrollY - lastScrollY
             if (dy > scrollThreshold) {
-                // Scrolling down
                 bottomNav.animate().translationY(bottomNav.height.toFloat()).setDuration(300).start()
             } else if (dy < -scrollThreshold) {
-                // Scrolling up
                 bottomNav.animate().translationY(0f).setDuration(300).start()
             }
-
             lastScrollY = currentScrollY
         }
 
@@ -103,7 +104,6 @@ class ProfileScreenActivity : BaseActivity() {
         tvTaskLeft.text = "${taskLeftCount} Task Left"
         tvTaskDone.text = "${taskDoneCount.toString()} Task Done"
 
-
         // Fragment
         val addTaskDialogFragment = FirebaseAuth.getInstance().currentUser?.displayName?.let {
             AddTaskDialogFragment(it)
@@ -120,7 +120,6 @@ class ProfileScreenActivity : BaseActivity() {
         }
         val llLogOut = findViewById<LinearLayout>(R.id.ll_logout)
 
-
         llChangeAccName.setOnClickListener {
             if (addTaskDialogFragment != null) {
                 showDialogFragment(
@@ -132,9 +131,10 @@ class ProfileScreenActivity : BaseActivity() {
                 addTaskDialogFragment.setOnAddTaskListener(object :
                     AddTaskDialogFragment.onAddTaskListener {
                     override fun onAddTask(title: String, description: String) {
-                        val user = FirebaseAuth.getInstance().currentUser
-                        tvAccountName.text = title
-                        user?.updateProfile(userProfileChangeRequest { displayName = title })
+                        authService.updateDisplayName(title) { success, message ->
+                            showSnack(message)
+                            if (success) tvAccountName.text = title
+                        }
                     }
                 })
             }
@@ -192,7 +192,6 @@ class ProfileScreenActivity : BaseActivity() {
             }
         }
 
-
         llLogOut.setOnClickListener {
             val googleSignInClient = GoogleSignIn.getClient(
                 this,
@@ -202,13 +201,13 @@ class ProfileScreenActivity : BaseActivity() {
                     .build()
             )
             googleSignInClient.signOut().addOnCompleteListener {
-                FirebaseAuth.getInstance().signOut()
-                val intent = Intent(this, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
+                authService.logout {
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                }
             }
         }
-
 
         setBackToHome()
         loadAccountNameFromFirebase()
@@ -269,7 +268,6 @@ class ProfileScreenActivity : BaseActivity() {
         prefs.edit().putString("ProfileImagePath", fileName).apply()
     }
 
-
     private fun loadProfileImageFromStorage() {
         val prefs = getSharedPreferences("ToDoList", MODE_PRIVATE)
         val fileName = prefs.getString("ProfileImagePath", null)
@@ -282,7 +280,6 @@ class ProfileScreenActivity : BaseActivity() {
         }
     }
 
-
     // Change Account Name
     private fun loadAccountNameFromFirebase() {
         val user = FirebaseAuth.getInstance().currentUser
@@ -290,13 +287,11 @@ class ProfileScreenActivity : BaseActivity() {
         tvAccountName.text = nameToDisplay
     }
 
-
     // Change Email
     private fun showReAuthDialog(newEmail: String) {
         val input = EditText(this).apply {
             hint = "Enter current password"
-            inputType =
-                android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
         AlertDialog.Builder(this)
@@ -305,54 +300,19 @@ class ProfileScreenActivity : BaseActivity() {
             .setView(input)
             .setPositiveButton("Confirm") { _, _ ->
                 val currentPassword = input.text.toString()
-                updateEmailWithReAuth(currentPassword, newEmail)
+                authService.reAuthenticateAndUpdateEmail(currentPassword, newEmail) { _, message ->
+                    showSnack(message)
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
-    }
-
-    private fun updateEmailWithReAuth(currentPassword: String, newEmail: String) {
-        val user = FirebaseAuth.getInstance().currentUser
-        val currentEmail = user?.email
-
-        if (user != null && currentEmail != null) {
-            val credential = EmailAuthProvider.getCredential(currentEmail, currentPassword)
-            user.reauthenticate(credential)
-                .addOnCompleteListener { authTask ->
-                    if (authTask.isSuccessful) {
-                        user.verifyBeforeUpdateEmail(newEmail)
-                            .addOnCompleteListener { updateTask ->
-                                if (updateTask.isSuccessful) {
-                                    user.sendEmailVerification()
-                                    Toast.makeText(
-                                        this,
-                                        "Email updated. Verification sent.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } else {
-                                    Toast.makeText(
-                                        this,
-                                        "Update failed: ${updateTask.exception?.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                    } else {
-                        Toast.makeText(this, "Re-auth failed: wrong password?", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
-        } else {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
-        }
     }
 
     // Change Password
     private fun showReAuthDialogForPassword(newPassword: String) {
         val input = EditText(this).apply {
             hint = "Enter current password"
-            inputType =
-                android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
         AlertDialog.Builder(this)
@@ -361,94 +321,19 @@ class ProfileScreenActivity : BaseActivity() {
             .setView(input)
             .setPositiveButton("Confirm") { _, _ ->
                 val currentPassword = input.text.toString()
-                updatePasswordWithReAuth(currentPassword, newPassword)
+                authService.reAuthenticateAndUpdatePassword(currentPassword, newPassword) { _, message ->
+                    showSnack(message)
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun updatePasswordWithReAuth(currentPassword: String, newPassword: String) {
-        val user = FirebaseAuth.getInstance().currentUser
-        val currentEmail = user?.email
-
-        if (user != null && currentEmail != null) {
-            val credential = EmailAuthProvider.getCredential(currentEmail, currentPassword)
-            user.reauthenticate(credential)
-                .addOnCompleteListener { authTask ->
-                    if (authTask.isSuccessful) {
-                        user.updatePassword(newPassword)
-                            .addOnCompleteListener { updateTask ->
-                                if (updateTask.isSuccessful) {
-                                    Toast.makeText(this, "Password updated.", Toast.LENGTH_SHORT)
-                                        .show()
-                                } else {
-                                    Toast.makeText(
-                                        this,
-                                        "Update failed: ${updateTask.exception?.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                    } else {
-                        Toast.makeText(this, "Re-auth failed: wrong password?", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
-        } else {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
-        }
+    // Common Snackbar
+    private fun showSnack(message: String?) {
+        Snackbar.make(findViewById(android.R.id.content), message?:"", Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(ContextCompat.getColor(this, R.color.md_theme_onSurface))
+            .setTextColor(ContextCompat.getColor(this, R.color.md_theme_surfaceVariant))
+            .show()
     }
-
-    // Profile Image (Storage Firebase)
-//    private fun uploadProfileImage(originalUri: Uri) {
-//        Log.d("ProfileImageUpload", "Preparing to upload. Original URI: $originalUri")
-//
-//        if (userId == null) {
-//            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
-//            return
-//        }
-//
-//        // Ensure we have a local copy
-//        val localFile = File(cacheDir, "profile_upload_${System.currentTimeMillis()}.jpg")
-//        contentResolver.openInputStream(originalUri)?.use { input ->
-//            localFile.outputStream().use { output ->
-//                input.copyTo(output)
-//            }
-//        }
-//        val safeUri = Uri.fromFile(localFile)
-//        Log.d("ProfileImageUpload", "Local copy URI: $safeUri")
-//
-//        val storageRef = storage.reference.child("profile_pics/$userId.jpg")
-//        storageRef.putFile(safeUri)
-//            .addOnSuccessListener {
-//                Log.d("ProfileImageUpload", "Upload success. Fetching download URL.")
-//                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-//                    Log.d("ProfileImageUpload", "Download URL: $downloadUrl")
-//                    db.collection("users").document(userId)
-//                        .update("profileImageUrl", downloadUrl.toString())
-//                    Toast.makeText(this, "Profile image updated.", Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//            .addOnFailureListener { e ->
-//                Log.e("ProfileImageUpload", "Upload failed", e)
-//                Toast.makeText(this, "Failed to upload profile image.", Toast.LENGTH_SHORT).show()
-//            }
-//    }
-//
-//
-//
-//    private fun loadProfileImage() {
-//        if (userId != null) {
-//            db.collection("users").document(userId).get()
-//                .addOnSuccessListener { document ->
-//                    val imageUrl = document.getString("profileImageUrl")
-//                    if (!imageUrl.isNullOrEmpty()) {
-//                        Glide.with(this)
-//                            .load(imageUrl)
-//                            .circleCrop()
-//                            .into(ivProfileimg)
-//                    }
-//                }
-//        }
-//    }
 }

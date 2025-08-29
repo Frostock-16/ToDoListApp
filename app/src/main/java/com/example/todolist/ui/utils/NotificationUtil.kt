@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
-import com.example.todolist.TaskReminderReceiver
+import com.example.todolist.ui.dialogs.TaskReminderReceiver
 
 fun scheduleNotification(
     context: Context,
@@ -56,5 +56,4 @@ fun cancelNotification(context: Context, requestCode: Int) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
     alarmManager.cancel(pendingIntent)
-    Toast.makeText(context, "Notification canceled", Toast.LENGTH_SHORT).show()
 }

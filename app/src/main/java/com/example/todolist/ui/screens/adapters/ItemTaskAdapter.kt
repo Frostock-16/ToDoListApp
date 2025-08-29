@@ -1,4 +1,4 @@
-package com.example.todolist
+package com.example.todolist.ui.screens.adapters
 
 
 import android.annotation.SuppressLint
@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.example.todolist.R
 import com.example.todolist.data.modal.Task
 
 class ItemTaskAdapter(private var itemList: List<Task>) :
